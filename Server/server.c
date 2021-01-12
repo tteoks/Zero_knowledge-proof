@@ -12,12 +12,22 @@
 void error_handle(char *msg);
 void display_info(const char *serv_port);
 void getIP(char *ip_buff);
+void display_usage() {
+	printf("Usage\n");
+	printf("./server <serv_port>\n");
+}
+
 
 int main(int argc, char *argv[])
 {
 	int serv_sock;
 	int clnt_sock;
+	int nRcv;
+	int end;
 	const char *serv_port = argv[1];
+	char send_msg[1024] = { 0x00, };
+	char recv_msg[1024] = { 0x00, };
+	char *start, *temp;
 
 	struct sockaddr_in serv_addr;
 	struct sockaddr_in clnt_addr;
@@ -30,7 +40,8 @@ int main(int argc, char *argv[])
 	}
 
 	if(argc != 2) {
-		error_handle("Invalid arguments!");
+		display_usage();
+		exit(1);
 	}
 
 	memset(&serv_addr, 0x00, sizeof(serv_addr));
@@ -51,16 +62,61 @@ int main(int argc, char *argv[])
 
 	clnt_addr_size = sizeof(clnt_addr);
 	clnt_sock = accept(serv_sock, (struct sockaddr *) &clnt_addr, &clnt_addr_size);
-	if(clnt_sock == -1) {
-		error_handle("Accept ERROR!");
+	if (clnt_sock == -1) {
+		error_handle("Accept ERROR");
+	} else {
+		printf("%s Connection Complete!\n", inet_ntoa(clnt_addr.sin_addr));
 	}
 
-	char msg[] = "Hello This is TEST\n";
-	write(clnt_sock, msg, sizeof(msg));
+/*
+	while(1) {
+		printf("Message Receives...\n");
+		nRcv = read(clnt_sock, recv_msg, sizeof(recv_msg) - 1);
+
+		if (nRcv < 0 ) {
+			printf("Receive ERROR...\n");
+			break;
+		}
+
+		recv_msg[nRcv] = '\0';
+
+		if (strcmp(recv_msg, "exit") == 0) {
+			printf("Close Clinet Connection...\n");
+			break;
+		}
+		
+		printf("Receive Message: %s\n", recv_msg);
+		
+		printf("Send your Message: ");
+		// scanf("%s", send_msg);
+		fgets(send_msg, 1024, stdin);
+		send_msg[strlen(send_msg) - 1] = '\0';
+
+		if (strcmp(send_msg, "exit") == 0) {
+			write(clnt_sock, send_msg, (int)strlen(send_msg));
+			break;
+		}
+
+		write(clnt_sock, send_msg, (int)strlen(send_msg));
+	}
+*/
+	printf("Message Receives...\n");
+	nRcv = read(clnt_sock, recv_msg, sizeof(recv_msg) - 1);
+
+	if (nRcv < 0) {
+		error_handle("Receive ERROR...\n");
+	}
+	printf("Receive Message: %d: %s\n", nRcv, recv_msg);
+
+	// split data set ", "
+	temp = strtok(recv_msg, ", ");
+	while (temp != NULL) {
+	 	printf("%s\n", temp);
+		temp = strtok(NULL, ", ");
+	}
 
 	close(clnt_sock);
 	close(serv_sock);
-
 	return 0;
 }
 
@@ -89,7 +145,7 @@ void getIP(char *ip_buff)
 
 	fd = socket(AF_INET, SOCK_DGRAM, 0);
 	ifr.ifr_addr.sa_family = AF_INET;
-	strncpy(ifr.ifr_name, "eth0", IF_NAMESIZE - 1);
+	strncpy(ifr.ifr_name, "ens33", IF_NAMESIZE - 1);
 
 	ioctl(fd, SIOCGIFADDR, &ifr);
 	close(fd);
