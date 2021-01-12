@@ -9,11 +9,12 @@ void error_handle(char *msg);
 int main(int argc, char *argv[])
 {
 	int clnt_sock;
+	// int nRcv;
 	const char *serv_ip = argv[1];
 	const char *serv_port = argv[2];
 	struct sockaddr_in serv_addr;
-	char message[1024] = {0x00, };
-
+	char recv_msg[1024] = {0x00, };
+	char send_msg[1024] = {0x00, };
 
 	if(argc != 3) {
 		error_handle("Invalid arguments!");
@@ -31,14 +32,49 @@ int main(int argc, char *argv[])
 
 	if(connect(clnt_sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) == -1) {
 		error_handle("Connect ERROR!");
+	} else {
+		printf("%s Connection Complete!\n", inet_ntoa(serv_addr.sin_addr));
 	}
 
-	if(read(clnt_sock, message, sizeof(message)-1) == -1) {
-		error_handle("Read ERROR!");
+
+/*	while(1) {
+		printf("Input Your command: ");
+		// scanf("%s", send_msg);
+		fgets(send_msg, 1024, stdin);
+		send_msg[strlen(send_msg) - 1] = '\0';
+
+		if (strcmp(send_msg, "exit") == 0) {
+			write(clnt_sock, send_msg, (int)strlen(send_msg));
+			break;
+		}
+
+		write(clnt_sock, send_msg, (int)strlen(send_msg));
+		printf("Message Receives...\n");
+
+		nRcv = read(clnt_sock, recv_msg, sizeof(recv_msg) - 1);
+		if (nRcv < 0) {
+			printf("Receive Error..\n");
+			break;
+		}
+		recv_msg[nRcv] = '\0';
+
+		if (strcmp(recv_msg, "exit") == 0) {
+			printf("Close Server Connection...\n");
+			break;
+		}
+
+		printf("Receive Message: %s\n", recv_msg);
 	}
-	printf("Message from server: %s\n", message);
+
+*/
+	printf("Input you Command: ");
+	fgets(send_msg, 1024, stdin);
+	send_msg[strlen(send_msg) - 1] = '\0';
+
+	write(clnt_sock, send_msg, (int)strlen(send_msg));
 
 	close(clnt_sock);
+	printf("Close Connection...\n");
 	return 0;
 }
 
