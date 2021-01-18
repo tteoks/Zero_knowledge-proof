@@ -3,9 +3,6 @@ INCLUDE=-I/usr/include/mysql -I./src
 LIBS=-L/usr/libs/mysql
 DEFS=-lmysqlclient -lssl -lcrypto
 
-test : database.o crypto.o test.o
-	${CC} -g -o test database.o crypto.o test.o ${INCLUDE} ${LIBS} ${DEFS}
-
 client: database.o crypto.o client.o
 	${CC} -g -o client database.o crypto.o client.o ${INCLUDE} ${LIBS} ${DEFS}
 
@@ -23,9 +20,6 @@ client.o : client.c
 
 server.o : server.c
 	${CC} ./server.c -c -o server.o ${INCLUDE} ${DEFS}
-
-test.o : test.c
-	${CC} ./test.c -c -o test.o ${INCLUDE} ${DEFS}
 
 clean:
 	rm *.o client

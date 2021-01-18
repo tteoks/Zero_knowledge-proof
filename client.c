@@ -20,8 +20,8 @@ int main(int argc, char *argv[])
 	char recv_msg[65535] = {0x00, };
 	char send_msg[16384] = {0x00, };
 	char infectees_sha[4096][SHA256_DIGEST_LENGTH*2 + 1] = {0x00, };
-
-	char *str, *temp;
+	char client_result[4096][256] = {0x00, };
+	char *temp;
 	char select;
 
 	// For database
@@ -81,10 +81,18 @@ int main(int argc, char *argv[])
 	// SHA256 logic
 	printf("Start Hashing...\n");
 	while (sql_row = mysql_fetch_row(sql_res)) {
+		snprintf(client_result[num], strlen(sql_row[0]), "%s", sql_row[0]);
 		if(!simpleSHA256(sql_row[0], strlen(sql_row[0]), 
 					md_ary[num++])) {
 		error_handle("ERROR in simpleSHA256");	
 		}
+	}
+
+	if(client_result[0][0] == '\0') {
+		printf("Query Result is Zero\nExit...\n");
+		write(clnt_sock, "bye", 3);
+		close(clnt_sock);
+		return 0;
 	}
 
 	for(i=0; i<num; i++) {
@@ -110,8 +118,6 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 	
-
-	num = 10;
 	i = 0, j = 0;
 	// Sending hashstr, each num of sending data is 250
 	for (j=0; j<num/200; j++) {
@@ -167,13 +173,22 @@ int main(int argc, char *argv[])
 	printf("Success Send all data\n\n");
 
 	printf("Waiting result...\n");
-	nRcv = read(clnt_sock, recv_msg, sizeof(recv_msg) - 1);
-	recv_msg[nRcv] = '\0';
 
-	if(recv_msg[0] == '\0') {
-		printf("No infectee!\n");
-	} else {
-		int idx = 0;
+	int idx = 0;
+	while(1) {
+		nRcv = read(clnt_sock, recv_msg, sizeof(recv_msg) - 1);
+		recv_msg[nRcv] = '\0';
+		printf("Receive Infectee data...\n");
+
+		if (nRcv < 0) {
+			printf("NO Infectee!!\n");
+			close(clnt_sock);
+			return 0;
+		}
+		if(strcmp(recv_msg, "end") == 0) {
+			printf("Success get result\n");
+			break;
+		}
 
 		temp = strtok(recv_msg, ", ");
 		while(temp != NULL) {
@@ -181,20 +196,33 @@ int main(int argc, char *argv[])
 			infectees_sha[idx++][65] = '\0';
 			temp = strtok(NULL, ", ");
 		}
-
-		for(int i=0; i<idx; i++) {
-			printf("[%d] %s\n", i+1 , infectees_sha[i]);
-		}
+		
+		printf("Send OK\n");
+		write(clnt_sock, "ok", 2);
+	}
+	
+	if(recv_msg[0] == '\0') {
+			printf("No infectee!\n");
+			return 0;
 	}
 
-	// TODO 
-	/*
-		compare infectee and database hash 
-		and value
 
-	*/
+	printf("-------------------------------------\n");
+	printf("#         Infectee's values         #\n");
+	printf("-------------------------------------\n");
 
+	// Compare hash
+	for (i=0; i<num; i++) {
+		for (j=0; j<idx; j++) {
+			if(strcmp(hashstr_ary[i], infectees_sha[j]) == 0) {
+				printf("no.%04d %s\n", i+1, client_result[i]);
+			} 
+		}
+	}
+	
+	printf("-------------------------------------\n");
 
+	printf("Total Infectees: %d\n\n\n", idx);
 	close(clnt_sock);
 	printf("Close Connection...\n");
 	return 0;
