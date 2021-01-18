@@ -23,15 +23,14 @@ void display_usage() {
 
 int main(int argc, char *argv[])
 {
-	int serv_sock, clnt_sock, nRcv, end;
+	int serv_sock, clnt_sock, nRcv;
 	int i=0, j=0, num=0, idx=0;
 	const char *serv_port = argv[1];
 	char send_msg[65535] = { 0x00, };
 	char recv_msg[65535] = { 0x00, };
 
 	char get_hashstr_ary[4096][SHA256_DIGEST_LENGTH*2 + 1] = {0x00, };
-	char result_list[4096][SHA256_DIGEST_LENGTH*2 + 1] = {0x00, };
-	char *start, *temp;
+	char *temp;
 
 	struct sockaddr_in serv_addr;
 	struct sockaddr_in clnt_addr;
@@ -122,8 +121,13 @@ int main(int argc, char *argv[])
 		}
 		recv_msg[nRcv] = '\0';
 		if(strcmp(recv_msg, "end") == 0) {
-			printf("END of data recieve...\n");
+			printf("\nEND of data recieve...\n");
 			break;
+		} else  if(strcmp(recv_msg, "bye") == 0) {
+			printf("Client try bye\nExit...\n");
+			close(clnt_sock);
+			close(serv_sock);
+			return 0;
 		}
 		
 		// split data set ", "
@@ -136,20 +140,36 @@ int main(int argc, char *argv[])
 		}
 		
 		
-		printf("Sending ok\n\n");
+		printf("Sending ok\n");
 		write(clnt_sock, "ok", 2);
 	}
 
-	printf("total %d\n", idx-1);
+	printf("Num of client info: %d\n", idx);
 	printf("Success recieve all data set!\n");
 	
 	printf("Find Infectee...\n");
 	int find = 0;;
-	memset(send_msg, 0x00, sizeof(send_msg));
 	for(i=0; i<idx; i++) {
 		for(j=0; j<num; j++) {
 			if(strcmp(get_hashstr_ary[i], cmp_hashstr_ary[j]) == 0) {
-				if (find == 0) {
+				if (find%200 == 0) {
+					if(find != 0) {
+						send_msg[64 + 66 * 199] = '\0';
+						write(clnt_sock, send_msg, strlen(send_msg));
+						printf("Send result data...\n");
+						nRcv = read(clnt_sock, recv_msg, sizeof(recv_msg) - 1);
+						recv_msg[nRcv] = '\0';
+						if(strcmp(recv_msg, "ok") == 0) {
+							printf("Recieve OK, Continue\n");
+						} else {
+							printf("Unknown Commanad!\n");
+							write(clnt_sock, "end", 3);
+							close(clnt_sock);
+							close(serv_sock);
+							return 0;
+						}
+					}
+					memset(send_msg, 0x00, sizeof(send_msg));
 					strncat(send_msg, get_hashstr_ary[i], strlen(get_hashstr_ary[i]));
 				} else {
 					strcat(send_msg, ", ");	
@@ -159,16 +179,30 @@ int main(int argc, char *argv[])
 			}
 		}
 	}
+
 	if(send_msg[0] == '\0') {
 		printf("No Infectee in airline\n");
 		send_msg[0] = '\0';
 	} else {
-		printf("Find Infectee: %d\n", find);
-		send_msg[64 + (find-1) * 66] = '\0';
-		
+		send_msg[64 + ((find-1)%200) * 66] = '\0';	
 	}
+
 	write(clnt_sock, send_msg, strlen(send_msg));
-	printf("Sending result and close... \n\n");
+	nRcv = read(clnt_sock, recv_msg, sizeof(recv_msg) - 1);
+	recv_msg[nRcv] = '\0';
+	if(strcmp(recv_msg, "ok") == 0) {
+		printf("Recieve last OK, Finish\n");	
+	} else {
+		printf("%s: Unknown Commanad!\n", recv_msg);
+		write(clnt_sock, "end", 3);
+		close(clnt_sock);
+		close(serv_sock);
+		return 0;
+	}
+	printf("Find Infectee: %d\n", find);
+
+	write(clnt_sock, "end", 3);
+	printf("Sending all result and close... \n\n");
 
 	close(clnt_sock);
 	close(serv_sock);
