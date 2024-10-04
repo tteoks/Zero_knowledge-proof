@@ -1,7 +1,7 @@
 # Zero-knowledge Proof
 
 
-### 개요
+## 개요
 * Tech Stack
   * Popular language (C lang)
   * RDB
@@ -26,9 +26,24 @@
 * Goal
     * 항공사는 고객의 신상정보를 제공하지 않고, 양성 확진자 확인
     
+## Contents
 ### Zero-knownledge proof architecture
 ![Zero-knowledge proof architecture](./resource/Zero-knowledge_proof.png)
 
 ### DB Scheme
 
 ![DB Scheme](./resource/db_scheme.png)
+
+
+## 테스트
+
+#### 테스트 데이터셋
+![Dataset](./resource/TEST_dataset.png)
+
+
+
+#### 테스트 결과
+![Result](./resource/TEST_result.png)
+* 항공사는 고객 정보를 노출하지 않고 KCDC에게 감염자 확인 요청
+* KCDC는 항공사의 고객 정보를 모른 상태로 감염자 확인
+* 항공사는 감염자를 정상적으로 확인 (Infected Person 1 ~ 5)
